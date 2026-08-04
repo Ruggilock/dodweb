@@ -4,7 +4,8 @@ import { Badge } from "@/components/Badge";
 import { StateBadge } from "@/components/StateBadge";
 import type { SubmissionState } from "@/lib/types";
 
-export const revalidate = 300;
+// See app/(dashboard)/page.tsx for why this is force-dynamic instead of revalidate.
+export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<{ state?: string }>;
 

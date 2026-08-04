@@ -1,6 +1,7 @@
 import { getDashboardData } from "@/lib/pretalx";
 
-export const revalidate = 300;
+// See app/(dashboard)/page.tsx for why this is force-dynamic instead of revalidate.
+export const dynamic = "force-dynamic";
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString("es-PE", {

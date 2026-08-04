@@ -1,7 +1,10 @@
 import { getDashboardData } from "@/lib/pretalx";
 import { StatCard } from "@/components/StatCard";
 
-export const revalidate = 300;
+// Rendered per-request (not prerendered at build time, which would require
+// the Pretalx env vars to be present during `next build`). Data itself is
+// still cached 5 min via the fetch-level `revalidate` in lib/pretalx.ts.
+export const dynamic = "force-dynamic";
 
 export default async function OverviewPage() {
   const { submissions, speakers, tracks, submissionTypes } = await getDashboardData();
