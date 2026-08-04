@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens sourced from DESIGN.md (design-system.devopsdays.pe).
+ * Tailwind's default spacing unit is 4px, which already matches the
+ * design system's "base 4" scale 1:1 (p-4 = 16px = --s-4, etc) — no
+ * custom spacing tokens needed.
+ */
+
+:root {
+  --purple: #53099e;
+  --purple-deep: #2e005a;
+  --purple-ink: #1a0a36;
+  --purple-tint: #a17cd1;
+  --purple-wash: #ede6f5;
+  --lime: #a3e37c;
+  --lime-soft: #c5efa8;
+
+  --ink: #0e0520;
+  --paper: #fbfaf7;
+  --paper-2: #f2efea;
+  --line: #e6e1da;
+  --mute: #8a8496;
+
+  --success: #22a06b;
+  --warn: #e6a100;
+  --error: #d6361c;
+  --info: #3b7bd6;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+}
+
+@theme inline {
+  --color-purple: var(--purple);
+  --color-purple-deep: var(--purple-deep);
+  --color-purple-ink: var(--purple-ink);
+  --color-purple-tint: var(--purple-tint);
+  --color-purple-wash: var(--purple-wash);
+  --color-lime: var(--lime);
+  --color-lime-soft: var(--lime-soft);
+
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-line: var(--line);
+  --color-mute: var(--mute);
+
+  --color-success: var(--success);
+  --color-warn: var(--warn);
+  --color-error: var(--error);
+  --color-info: var(--info);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* Type system: Orbitron (display) / Poppins (text) / JetBrains Mono (mono) */
+  --font-display: var(--font-orbitron), ui-monospace, monospace;
+  --font-text: var(--font-poppins), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Radii — overrides Tailwind's default radius scale with DESIGN.md values */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 999px;
+
+  /* Elevation — purple-tinted shadows */
+  --shadow-resting: 0 1px 2px rgba(14, 5, 32, 0.06);
+  --shadow-hover: 0 4px 12px -4px rgba(14, 5, 32, 0.12);
+  --shadow-overlay: 0 14px 28px -14px rgba(83, 9, 158, 0.25);
+  --shadow-modal: 0 24px 48px -20px rgba(83, 9, 158, 0.35);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-text);
+}
