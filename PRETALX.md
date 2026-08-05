@@ -50,9 +50,11 @@ Preguntas custom con `target: speaker`:
 | 387 | Location | string | ✅ pública |
 | 388 | LinkedIn | url | ✅ pública |
 | 398 | Social Networks / Public Profile | url | ✅ pública |
-| 401 | Phone number | string | 🔒 PII — no exponer |
-| 463 | Identity document (tipo y número) | string | 🔒 PII — no exponer |
-| 464 | T-shirt size | choices | ⚙️ logística interna |
+| 401 | Phone number | string | 🔒 interna — solo `/speakers/[code]` y `/pendientes` |
+| 463 | Identity document (tipo y número) | string | 🔒 interna — solo `/speakers/[code]` y `/pendientes` |
+| 464 | T-shirt size | choices | 🔒 interna — solo `/speakers/[code]` y `/pendientes` |
+
+Estas tres SÍ se piden a la API (a diferencia de `399` "Notas para el comité", que nunca se fetchea) pero solo se renderizan en las dos vistas internas — nunca en el grid público de `/speakers`. Ver `INTERNAL_SPEAKER_QUESTIONS` en `lib/pretalx.ts`.
 
 ### Submission (charla)
 Campos nativos: `code`, `title`, `abstract`, `speakers[]`, `submission_type`, `track`, `tags[]`, `state`, `duration`, `slots`, `resources` (slides), `answers`, `created`, `updated`.
@@ -68,8 +70,8 @@ Preguntas custom con `target: submission`:
 | 384 | ¿Quién creó esta presentación? | choices | interna |
 | 396 | Link a charla previa | url | interna |
 | 397 | ¿Primera vez en DevOpsDays? | choices | interna |
-| 399 | Notas para el comité | text | 🔒 interna, confidencial |
-| 462 | Slides | file | ✅ pública (post-evento) |
+| 399 | Notas para el comité | text | 🔒 nunca se fetchea |
+| 462 | Slides | file | ⚙️ tracked en `/pendientes` (2/165 subidas a la fecha del último check) |
 
 ### Tracks (6)
 `Platform Engineering & DevOps` (200) · `Enterprise AI & Data Strategy` (202) · `Security & Technology Transformation` (201) · `Modern Leadership & Culture` (199) · `Event` (229) · `Lightning talk` (230)
@@ -128,14 +130,15 @@ La agenda **ya está publicada** (versión `0.11`, 12 versiones de historial). C
 - `middleware.ts` intercepta rutas protegidas, valida cookie de sesión firmada (httpOnly)
 - `/login` compara contra las env vars y setea la cookie
 
-**Vistas propuestas:**
-1. **Grid de speakers** — avatar, nombre, company, job title, ubicación, links (LinkedIn/social), charla(s) asociadas. Solo campos públicos.
-2. **Lista de charlas** — título, track, tipo (incluye badge "Keynote"), duración, tag de nivel, estado (foco en `confirmed` para la agenda pública), **día/hora/sala** (join con `/slots/`).
-3. **Agenda por día** — vista tipo calendario/timeline, agrupada por día (27/28 ago) y sala, cruzando `submissions` + `slots` + `speakers`.
-4. **Overview / stats** — conteos por track, por tipo, confirmadas vs en revisión.
-4. *(Opcional, solo si es para el equipo core)* **Panel interno de logística** — `has_arrived`, t-shirt size, notas del comité. Requiere decidir si va en el mismo login o en una ruta separada con más restricción.
+**Vistas implementadas:**
+1. **`/speakers`** — grid con avatar, nombre, company, job title, ubicación, charla(s) asociadas. Solo campos públicos. Filtros por estado (Confirmados por defecto) y por track. Cada card linkea al detalle.
+2. **`/speakers/[code]`** — detalle de un speaker: bio, contacto (email/teléfono/LinkedIn/redes), **logística interna** (talla de polo, DNI — con badge "Falta" si no están), y sus charlas con estado, horario y status de láminas.
+3. **`/talks`** — título, track, tipo (badge "Keynote" destacado, junto con Talk/Workshop/Panel/Demo — no separado), duración, tag de nivel, estado (Confirmadas por defecto), día/hora/sala (join con `/slots/`). Excluye submissions tipo "Event" (registro, bienvenida, almuerzo, cierre — son bloques de programa, no charlas).
+4. **`/agenda`** — timeline agrupado por día (27/28 ago) y sala, incluye los bloques "Event" (sí pertenecen aquí).
+5. **`/` (Overview)** — conteos por track, por tipo, confirmadas vs en revisión.
+6. **`/pendientes`** — dashboard de logística para charlas/speakers **confirmados**: barras de completitud (%) + listado de quién falta, para tres cosas: láminas subidas (por charla), talla de polo (por speaker), DNI (por speaker).
 
-**Pendiente de decidir:**
-- ¿Keynote como sección destacada separada o agrupada con Talks con badge distinto?
-- ¿Se incluye el panel interno de logística o el dashboard es solo de cara pública/difusión?
-- Frecuencia de refresh/cache (ISR con `revalidate`, o fetch en cada request).
+**Decisiones tomadas:**
+- Keynote va agrupado con Talks en `/talks` (badge distinto), no en sección separada.
+- Sí se incluyó el panel interno de logística — vive en `/speakers/[code]` y `/pendientes`, detrás del mismo login (no hay segundo nivel de acceso). El grid público (`/speakers`) sigue sin mostrar esos campos.
+- Cache: fetch-level `revalidate: 300` en `lib/pretalx.ts` + páginas en `force-dynamic` (no prerender en build time — evita que el build dependa de que la API de Pretalx esté disponible). Botón "Refrescar" en el nav fuerza `revalidateTag`.

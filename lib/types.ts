@@ -48,10 +48,16 @@ export type Submission = {
   submissionTypeId: number;
   tagIds: number[];
   slot: ScheduleSlot | null;
+  /** URL of the uploaded slides file, or null if not uploaded yet. */
+  slidesUrl: string | null;
 };
 
-/** Only public-safe fields. Phone, ID document, t-shirt size and committee
- * notes are never fetched from Pretalx in the first place — see lib/pretalx.ts */
+/**
+ * `email`, `phone`, `identityDocument` and `tshirtSize` are PII/logistics
+ * fields. Only render them on the speaker detail page (/speakers/[code])
+ * and the /pendientes ops dashboard — never on the public speakers grid.
+ * Committee notes are still never fetched at all — see lib/pretalx.ts.
+ */
 export type Speaker = {
   code: string;
   name: string;
@@ -63,6 +69,10 @@ export type Speaker = {
   linkedin: string | null;
   social: string | null;
   submissionCodes: string[];
+  email: string | null;
+  phone: string | null;
+  identityDocument: string | null;
+  tshirtSize: string | null;
 };
 
 export type PretalxDataset = {

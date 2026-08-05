@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/speakers", label: "Speakers" },
   { href: "/talks", label: "Charlas" },
   { href: "/agenda", label: "Agenda" },
+  { href: "/pendientes", label: "Pendientes" },
 ];
 
 export function NavBar() {

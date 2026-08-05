@@ -105,9 +105,10 @@ export default async function SpeakersPage({ searchParams }: { searchParams: Sea
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {sorted.map(({ speaker: sp, talks }) => (
-          <div
+          <Link
             key={sp.code}
-            className="rounded-lg border border-line bg-white p-5 shadow-resting"
+            href={`/speakers/${sp.code}`}
+            className="block rounded-lg border border-line bg-white p-5 shadow-resting transition-shadow hover:shadow-hover"
           >
             <div className="flex items-center gap-3">
               {sp.avatarUrl ? (
@@ -148,32 +149,7 @@ export default async function SpeakersPage({ searchParams }: { searchParams: Sea
                 ))}
               </ul>
             )}
-
-            {(sp.linkedin || sp.social) && (
-              <div className="mt-3 flex gap-3 border-t border-line pt-3 text-xs">
-                {sp.linkedin && (
-                  <a
-                    href={sp.linkedin}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-purple hover:underline"
-                  >
-                    LinkedIn
-                  </a>
-                )}
-                {sp.social && (
-                  <a
-                    href={sp.social}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-purple hover:underline"
-                  >
-                    Redes
-                  </a>
-                )}
-              </div>
-            )}
-          </div>
+          </Link>
         ))}
       </div>
     </div>

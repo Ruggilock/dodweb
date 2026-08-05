@@ -19,12 +19,7 @@ const API_TOKEN = process.env.PRETALX_API_TOKEN ?? "";
  * manual refresh via POST /api/refresh, which busts the "pretalx" tag. */
 const REVALIDATE_SECONDS = 300;
 
-/**
- * Only these speaker-target custom questions are fetched. Phone number (401),
- * Identity document (463) and T-shirt size (464) are PII/logistics and are
- * intentionally never requested from the API — not filtered after the fact,
- * simply never pulled in the first place. See PRETALX.md > Speaker fields.
- */
+/** Shown anywhere a speaker appears (grid, detail page). */
 const PUBLIC_SPEAKER_QUESTIONS = {
   company: 385,
   jobTitle: 386,
@@ -32,6 +27,21 @@ const PUBLIC_SPEAKER_QUESTIONS = {
   linkedin: 388,
   social: 398,
 } as const;
+
+/**
+ * PII/logistics fields (phone, identity document, t-shirt size). These are
+ * only rendered on the speaker detail page (/speakers/[code]) and the
+ * /pendientes ops dashboard — never on the public speakers grid. See
+ * PRETALX.md > Speaker fields.
+ */
+const INTERNAL_SPEAKER_QUESTIONS = {
+  phone: 401,
+  identityDocument: 463,
+  tshirtSize: 464,
+} as const;
+
+/** Submission-target question used to track slide uploads. */
+const SLIDES_QUESTION_ID = 462;
 
 type Paginated<T> = {
   count: number;
@@ -75,16 +85,23 @@ async function fetchAllPages<T>(path: string): Promise<T[]> {
 type RawAnswer = {
   question: number;
   answer: string;
+  answer_file: string | null;
   person: string | null;
   submission: string | null;
 };
 
-/** Maps speaker code -> answer text, for a single question id. */
-async function fetchAnswerMap(questionId: number): Promise<Map<string, string>> {
+/** Maps person/submission code -> answer value, for a single question id.
+ * File-type questions (e.g. slides) resolve to their file URL. */
+async function fetchAnswerMap(
+  questionId: number,
+  keyField: "person" | "submission" = "person"
+): Promise<Map<string, string>> {
   const answers = await fetchAllPages<RawAnswer>(`/answers/?question=${questionId}`);
   const map = new Map<string, string>();
   for (const a of answers) {
-    if (a.person && a.answer) map.set(a.person, a.answer);
+    const key = keyField === "person" ? a.person : a.submission;
+    const value = a.answer_file ?? a.answer;
+    if (key && value) map.set(key, value);
   }
   return map;
 }
@@ -115,6 +132,7 @@ type RawSpeaker = {
   name: string;
   biography: string | null;
   avatar_url: string | null;
+  email: string | null;
   submissions: string[];
 };
 type RawSubmission = {
@@ -184,14 +202,18 @@ async function getSlotsBySubmission(): Promise<Map<string, ScheduleSlot>> {
 }
 
 export async function getSpeakers(): Promise<Speaker[]> {
-  const [raw, company, jobTitle, location, linkedin, social] = await Promise.all([
-    fetchAllPages<RawSpeaker>("/speakers/"),
-    fetchAnswerMap(PUBLIC_SPEAKER_QUESTIONS.company),
-    fetchAnswerMap(PUBLIC_SPEAKER_QUESTIONS.jobTitle),
-    fetchAnswerMap(PUBLIC_SPEAKER_QUESTIONS.location),
-    fetchAnswerMap(PUBLIC_SPEAKER_QUESTIONS.linkedin),
-    fetchAnswerMap(PUBLIC_SPEAKER_QUESTIONS.social),
-  ]);
+  const [raw, company, jobTitle, location, linkedin, social, phone, identityDocument, tshirtSize] =
+    await Promise.all([
+      fetchAllPages<RawSpeaker>("/speakers/"),
+      fetchAnswerMap(PUBLIC_SPEAKER_QUESTIONS.company),
+      fetchAnswerMap(PUBLIC_SPEAKER_QUESTIONS.jobTitle),
+      fetchAnswerMap(PUBLIC_SPEAKER_QUESTIONS.location),
+      fetchAnswerMap(PUBLIC_SPEAKER_QUESTIONS.linkedin),
+      fetchAnswerMap(PUBLIC_SPEAKER_QUESTIONS.social),
+      fetchAnswerMap(INTERNAL_SPEAKER_QUESTIONS.phone),
+      fetchAnswerMap(INTERNAL_SPEAKER_QUESTIONS.identityDocument),
+      fetchAnswerMap(INTERNAL_SPEAKER_QUESTIONS.tshirtSize),
+    ]);
 
   return raw.map((s) => ({
     code: s.code,
@@ -204,13 +226,18 @@ export async function getSpeakers(): Promise<Speaker[]> {
     linkedin: linkedin.get(s.code) ?? null,
     social: social.get(s.code) ?? null,
     submissionCodes: s.submissions,
+    email: s.email,
+    phone: phone.get(s.code) ?? null,
+    identityDocument: identityDocument.get(s.code) ?? null,
+    tshirtSize: tshirtSize.get(s.code) ?? null,
   }));
 }
 
 export async function getSubmissions(): Promise<Submission[]> {
-  const [raw, slots] = await Promise.all([
+  const [raw, slots, slides] = await Promise.all([
     fetchAllPages<RawSubmission>("/submissions/"),
     getSlotsBySubmission(),
+    fetchAnswerMap(SLIDES_QUESTION_ID, "submission"),
   ]);
 
   return raw.map((s) => ({
@@ -224,6 +251,7 @@ export async function getSubmissions(): Promise<Submission[]> {
     submissionTypeId: s.submission_type,
     tagIds: s.tags,
     slot: slots.get(s.code) ?? null,
+    slidesUrl: slides.get(s.code) ?? null,
   }));
 }
 
