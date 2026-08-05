@@ -138,7 +138,11 @@ export default async function TalksPage({ searchParams }: { searchParams: Search
 
               return (
                 <tr key={s.code} className="border-b border-line align-top last:border-0">
-                  <td className="px-4 py-3 font-medium text-ink">{s.title}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <Link href={`/talks/${s.code}`} className="text-ink hover:text-purple hover:underline">
+                      {s.title}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 text-mute">{speakerNames || "—"}</td>
                   <td className="px-4 py-3 text-mute">{track?.name ?? "—"}</td>
                   <td className="px-4 py-3">
