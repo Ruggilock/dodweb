@@ -13,18 +13,9 @@ const HEADERS = [
   "Duración (min)",
   "Día/Hora",
   "Sala",
+  "Speaker(s)",
+  "Foto(s) de speaker(s)",
   "Láminas",
-  "Speaker",
-  "Email",
-  "Teléfono",
-  "Empresa",
-  "Cargo",
-  "Ubicación",
-  "DNI / Documento",
-  "Talla de polo",
-  "LinkedIn",
-  "Redes",
-  "Foto",
 ];
 
 export async function GET(request: Request) {
@@ -51,12 +42,9 @@ export async function GET(request: Request) {
     filtered = type ? byState.filter((s) => String(s.submissionTypeId) === type) : byState;
   }
 
-  // One row per talk. Every speaker field is newline-joined (one line per
-  // speaker, same position across columns) so a 3-speaker panel still fits
-  // one row, but each column lines up — line 2 of "Email" is line 2 of
-  // "Speaker", etc.
-  const lines = (values: string[]) => values.join("\n");
-
+  // One row per talk. Speaker(s) and Foto(s) are newline-joined — one line
+  // per speaker within the cell — instead of a separate column per field,
+  // which is friendlier when pasted/opened across different spreadsheet apps.
   const rows = [...filtered]
     .sort((a, b) => a.title.localeCompare(b.title))
     .map((t) => {
@@ -66,6 +54,11 @@ export async function GET(request: Request) {
         .map((id) => tagById.get(id)?.name)
         .filter(Boolean)
         .join(" | ");
+      const talkSpeakers = t.speakerCodes
+        .map((c) => speakerByCode.get(c))
+        .filter((sp) => sp !== undefined);
+      const speakerNames = talkSpeakers.map((sp) => sp.name).join("\n");
+      const speakerPhotos = talkSpeakers.map((sp) => sp.avatarUrl ?? "").join("\n");
       const schedule = t.slot?.start
         ? new Date(t.slot.start).toLocaleString("es-PE", {
             day: "2-digit",
@@ -75,10 +68,6 @@ export async function GET(request: Request) {
             timeZone: "America/Lima",
           })
         : "";
-
-      const talkSpeakers = t.speakerCodes
-        .map((c) => speakerByCode.get(c))
-        .filter((sp) => sp !== undefined);
 
       return [
         t.title,
@@ -90,18 +79,9 @@ export async function GET(request: Request) {
         t.durationMinutes,
         schedule,
         t.slot?.roomName ?? "",
+        speakerNames,
+        speakerPhotos,
         t.slidesUrl ?? "",
-        lines(talkSpeakers.map((sp) => sp.name)),
-        lines(talkSpeakers.map((sp) => sp.email ?? "")),
-        lines(talkSpeakers.map((sp) => sp.phone ?? "")),
-        lines(talkSpeakers.map((sp) => sp.company ?? "")),
-        lines(talkSpeakers.map((sp) => sp.jobTitle ?? "")),
-        lines(talkSpeakers.map((sp) => sp.location ?? "")),
-        lines(talkSpeakers.map((sp) => sp.identityDocument ?? "")),
-        lines(talkSpeakers.map((sp) => sp.tshirtSize ?? "")),
-        lines(talkSpeakers.map((sp) => sp.linkedin ?? "")),
-        lines(talkSpeakers.map((sp) => sp.social ?? "")),
-        lines(talkSpeakers.map((sp) => sp.avatarUrl ?? "")),
       ];
     });
 
