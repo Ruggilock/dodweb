@@ -20,6 +20,7 @@ const HEADERS = [
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  const code = url.searchParams.get("code");
   const state = url.searchParams.get("state") ?? "confirmed";
   const type = url.searchParams.get("type");
 
@@ -29,11 +30,17 @@ export async function GET(request: Request) {
   const typeById = new Map(submissionTypes.map((t) => [t.id, t]));
   const tagById = new Map(tags.map((t) => [t.id, t]));
 
-  const talks = submissions.filter(
-    (s) => typeById.get(s.submissionTypeId)?.name.toLowerCase() !== "event"
-  );
-  const byState = state === "all" ? talks : talks.filter((s) => s.state === state);
-  const filtered = type ? byState.filter((s) => String(s.submissionTypeId) === type) : byState;
+  let filtered: typeof submissions;
+  if (code) {
+    // Single-talk export (from the talk detail page) — ignores state/type filters.
+    filtered = submissions.filter((s) => s.code === code);
+  } else {
+    const talks = submissions.filter(
+      (s) => typeById.get(s.submissionTypeId)?.name.toLowerCase() !== "event"
+    );
+    const byState = state === "all" ? talks : talks.filter((s) => s.state === state);
+    filtered = type ? byState.filter((s) => String(s.submissionTypeId) === type) : byState;
+  }
 
   const rows = [...filtered]
     .sort((a, b) => a.title.localeCompare(b.title))
@@ -76,5 +83,6 @@ export async function GET(request: Request) {
     });
 
   const csv = toCsv(HEADERS, rows);
-  return csvResponse(csv, "charlas-devopsdays-lima-2026.csv");
+  const filename = code ? `charla-${code}.csv` : "charlas-devopsdays-lima-2026.csv";
+  return csvResponse(csv, filename);
 }

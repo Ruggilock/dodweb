@@ -28,9 +28,17 @@ export default async function TalkDetailPage({ params }: { params: Params }) {
 
   return (
     <div className="space-y-8">
-      <Link href="/talks" className="text-sm text-mute hover:text-purple">
-        ← Volver a Charlas
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <Link href="/talks" className="text-sm text-mute hover:text-purple">
+          ← Volver a Charlas
+        </Link>
+        <a
+          href={`/api/export/talks?code=${talk.code}`}
+          className="flex items-center gap-1.5 rounded-full border border-line bg-white px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-purple hover:text-purple"
+        >
+          ⬇ Descargar CSV
+        </a>
+      </div>
 
       <div>
         <div className="mb-3 flex flex-wrap items-center gap-2">
