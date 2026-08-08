@@ -51,12 +51,15 @@ export async function GET(request: Request) {
     filtered = type ? byState.filter((s) => String(s.submissionTypeId) === type) : byState;
   }
 
-  // One row per (talk, speaker) pair — talk columns repeat on every row for
-  // that talk, so grouping/filtering by speaker in Excel doesn't lose which
-  // talk they belong to. A talk with no assigned speaker still gets one row.
+  // One row per talk. Every speaker field is newline-joined (one line per
+  // speaker, same position across columns) so a 3-speaker panel still fits
+  // one row, but each column lines up — line 2 of "Email" is line 2 of
+  // "Speaker", etc.
+  const lines = (values: string[]) => values.join("\n");
+
   const rows = [...filtered]
     .sort((a, b) => a.title.localeCompare(b.title))
-    .flatMap((t) => {
+    .map((t) => {
       const track = t.trackId ? trackById.get(t.trackId) : null;
       const sType = typeById.get(t.submissionTypeId);
       const tagNames = t.tagIds
@@ -73,7 +76,11 @@ export async function GET(request: Request) {
           })
         : "";
 
-      const talkCols = [
+      const talkSpeakers = t.speakerCodes
+        .map((c) => speakerByCode.get(c))
+        .filter((sp) => sp !== undefined);
+
+      return [
         t.title,
         t.abstract,
         t.state,
@@ -84,30 +91,18 @@ export async function GET(request: Request) {
         schedule,
         t.slot?.roomName ?? "",
         t.slidesUrl ?? "",
+        lines(talkSpeakers.map((sp) => sp.name)),
+        lines(talkSpeakers.map((sp) => sp.email ?? "")),
+        lines(talkSpeakers.map((sp) => sp.phone ?? "")),
+        lines(talkSpeakers.map((sp) => sp.company ?? "")),
+        lines(talkSpeakers.map((sp) => sp.jobTitle ?? "")),
+        lines(talkSpeakers.map((sp) => sp.location ?? "")),
+        lines(talkSpeakers.map((sp) => sp.identityDocument ?? "")),
+        lines(talkSpeakers.map((sp) => sp.tshirtSize ?? "")),
+        lines(talkSpeakers.map((sp) => sp.linkedin ?? "")),
+        lines(talkSpeakers.map((sp) => sp.social ?? "")),
+        lines(talkSpeakers.map((sp) => sp.avatarUrl ?? "")),
       ];
-
-      const talkSpeakers = t.speakerCodes
-        .map((c) => speakerByCode.get(c))
-        .filter((sp) => sp !== undefined);
-
-      if (talkSpeakers.length === 0) {
-        return [[...talkCols, "", "", "", "", "", "", "", "", "", "", ""]];
-      }
-
-      return talkSpeakers.map((sp) => [
-        ...talkCols,
-        sp.name,
-        sp.email ?? "",
-        sp.phone ?? "",
-        sp.company ?? "",
-        sp.jobTitle ?? "",
-        sp.location ?? "",
-        sp.identityDocument ?? "",
-        sp.tshirtSize ?? "",
-        sp.linkedin ?? "",
-        sp.social ?? "",
-        sp.avatarUrl ?? "",
-      ]);
     });
 
   const csv = toCsv(HEADERS, rows);
