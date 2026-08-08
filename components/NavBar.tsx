@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/speakers", label: "Speakers" },
   { href: "/talks", label: "Charlas" },
   { href: "/agenda", label: "Agenda" },
+  { href: "/perfiles", label: "Perfiles" },
   { href: "/pendientes", label: "Pendientes" },
 ];
 
