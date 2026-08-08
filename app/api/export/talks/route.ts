@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 
 const HEADERS = [
   "Charla",
+  "Descripción",
   "Estado",
   "Tipo",
   "Track",
@@ -12,10 +13,18 @@ const HEADERS = [
   "Duración (min)",
   "Día/Hora",
   "Sala",
-  "Speaker(s)",
-  "Foto(s) de speaker(s)",
   "Láminas",
-  "Descripción",
+  "Speaker",
+  "Email",
+  "Teléfono",
+  "Empresa",
+  "Cargo",
+  "Ubicación",
+  "DNI / Documento",
+  "Talla de polo",
+  "LinkedIn",
+  "Redes",
+  "Foto",
 ];
 
 export async function GET(request: Request) {
@@ -42,22 +51,18 @@ export async function GET(request: Request) {
     filtered = type ? byState.filter((s) => String(s.submissionTypeId) === type) : byState;
   }
 
+  // One row per (talk, speaker) pair — talk columns repeat on every row for
+  // that talk, so grouping/filtering by speaker in Excel doesn't lose which
+  // talk they belong to. A talk with no assigned speaker still gets one row.
   const rows = [...filtered]
     .sort((a, b) => a.title.localeCompare(b.title))
-    .map((t) => {
+    .flatMap((t) => {
       const track = t.trackId ? trackById.get(t.trackId) : null;
       const sType = typeById.get(t.submissionTypeId);
       const tagNames = t.tagIds
         .map((id) => tagById.get(id)?.name)
         .filter(Boolean)
         .join(" | ");
-      const talkSpeakers = t.speakerCodes
-        .map((c) => speakerByCode.get(c))
-        .filter((sp) => sp !== undefined);
-      // Newline-joined (not " | ") so multi-speaker talks render as one line
-      // per speaker within the cell in Excel/Sheets, instead of one long row.
-      const speakerNames = talkSpeakers.map((sp) => sp.name).join("\n");
-      const speakerPhotos = talkSpeakers.map((sp) => sp.avatarUrl ?? "").join("\n");
       const schedule = t.slot?.start
         ? new Date(t.slot.start).toLocaleString("es-PE", {
             day: "2-digit",
@@ -68,8 +73,9 @@ export async function GET(request: Request) {
           })
         : "";
 
-      return [
+      const talkCols = [
         t.title,
+        t.abstract,
         t.state,
         sType?.name ?? "",
         track?.name ?? "",
@@ -77,11 +83,31 @@ export async function GET(request: Request) {
         t.durationMinutes,
         schedule,
         t.slot?.roomName ?? "",
-        speakerNames,
-        speakerPhotos,
         t.slidesUrl ?? "",
-        t.abstract,
       ];
+
+      const talkSpeakers = t.speakerCodes
+        .map((c) => speakerByCode.get(c))
+        .filter((sp) => sp !== undefined);
+
+      if (talkSpeakers.length === 0) {
+        return [[...talkCols, "", "", "", "", "", "", "", "", "", "", ""]];
+      }
+
+      return talkSpeakers.map((sp) => [
+        ...talkCols,
+        sp.name,
+        sp.email ?? "",
+        sp.phone ?? "",
+        sp.company ?? "",
+        sp.jobTitle ?? "",
+        sp.location ?? "",
+        sp.identityDocument ?? "",
+        sp.tshirtSize ?? "",
+        sp.linkedin ?? "",
+        sp.social ?? "",
+        sp.avatarUrl ?? "",
+      ]);
     });
 
   const csv = toCsv(HEADERS, rows);
