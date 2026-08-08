@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { getDashboardData } from "@/lib/pretalx";
 import { inferCountry, inferRoleCategory } from "@/lib/profiles";
+import { groupCompanies } from "@/lib/companies";
 import { RankedBarList } from "@/components/RankedBarList";
+import { ExpandableBarList } from "@/components/ExpandableBarList";
 import { StatCard } from "@/components/StatCard";
 
 // See app/(dashboard)/page.tsx for why this is force-dynamic instead of revalidate.
@@ -36,9 +38,13 @@ export default async function PerfilesPage({ searchParams }: { searchParams: Sea
 
   const countries = countBy(filtered, (sp) => inferCountry(sp.location) ?? OTHER);
   const roles = countBy(filtered, (sp) => inferRoleCategory(sp.jobTitle));
-  const companies = countBy(
-    filtered.filter((sp) => sp.company?.trim()),
-    (sp) => sp.company!.trim()
+  const companies = groupCompanies(
+    filtered
+      .filter((sp) => sp.company?.trim())
+      .map((sp) => ({
+        company: sp.company!,
+        person: { code: sp.code, name: sp.name, avatarUrl: sp.avatarUrl },
+      }))
   );
 
   const distinctCountries = countries.filter((c) => c.label !== OTHER).length;
@@ -109,8 +115,11 @@ export default async function PerfilesPage({ searchParams }: { searchParams: Sea
         <h2 className="mb-1 font-display text-lg font-bold text-ink">
           Empresas ({companies.length})
         </h2>
-        <p className="mb-4 text-xs text-mute">Todas las empresas representadas, de mayor a menor.</p>
-        <RankedBarList items={companies} maxItems={companies.length} />
+        <p className="mb-4 text-xs text-mute">
+          Todas las empresas representadas, de mayor a menor. Variantes del mismo nombre
+          (ej. BCP / Banco de Crédito del Perú) están agrupadas — click para ver quiénes son.
+        </p>
+        <ExpandableBarList items={companies} />
       </section>
     </div>
   );
