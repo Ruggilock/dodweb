@@ -16,8 +16,15 @@ export function toCsv(headers: string[], rows: (string | number)[][]): string {
   // tell "end of row" (\r\n) apart from "line break inside this cell" (\n).
   // With a plain \n row separator, Excel treats every \n as a new row and
   // shreds any multiline cell across several rows.
+  //
+  // "sep=," as the literal first line forces Excel (desktop and web) to use
+  // comma as the delimiter no matter the system's regional list separator.
+  // In es-PE/es-ES Windows locales, the decimal separator is "," which makes
+  // Excel's *default* CSV delimiter ";" instead — without this hint it
+  // doesn't split into columns at all, dumping every row into column A.
+  //
   // BOM so Excel opens UTF-8 (áéíóñ) correctly instead of mangling it.
-  return "﻿" + lines.join("\r\n");
+  return "﻿sep=,\r\n" + lines.join("\r\n");
 }
 
 export function csvResponse(csv: string, filename: string): Response {
