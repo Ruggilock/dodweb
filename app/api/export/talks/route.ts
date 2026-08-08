@@ -54,8 +54,10 @@ export async function GET(request: Request) {
       const talkSpeakers = t.speakerCodes
         .map((c) => speakerByCode.get(c))
         .filter((sp) => sp !== undefined);
-      const speakerNames = talkSpeakers.map((sp) => sp.name).join(" | ");
-      const speakerPhotos = talkSpeakers.map((sp) => sp.avatarUrl ?? "").join(" | ");
+      // Newline-joined (not " | ") so multi-speaker talks render as one line
+      // per speaker within the cell in Excel/Sheets, instead of one long row.
+      const speakerNames = talkSpeakers.map((sp) => sp.name).join("\n");
+      const speakerPhotos = talkSpeakers.map((sp) => sp.avatarUrl ?? "").join("\n");
       const schedule = t.slot?.start
         ? new Date(t.slot.start).toLocaleString("es-PE", {
             day: "2-digit",
