@@ -106,9 +106,11 @@ export default async function PerfilesPage({ searchParams }: { searchParams: Sea
       </div>
 
       <section className="rounded-lg border border-line bg-white p-5">
-        <h2 className="mb-1 font-display text-lg font-bold text-ink">Top empresas</h2>
-        <p className="mb-4 text-xs text-mute">Empresas con más speakers representándolas.</p>
-        <RankedBarList items={companies} maxItems={15} />
+        <h2 className="mb-1 font-display text-lg font-bold text-ink">
+          Empresas ({companies.length})
+        </h2>
+        <p className="mb-4 text-xs text-mute">Todas las empresas representadas, de mayor a menor.</p>
+        <RankedBarList items={companies} maxItems={companies.length} />
       </section>
     </div>
   );
