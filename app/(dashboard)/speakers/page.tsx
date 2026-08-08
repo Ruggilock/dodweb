@@ -47,14 +47,27 @@ export default async function SpeakersPage({ searchParams }: { searchParams: Sea
 
   const sorted = filtered.sort((a, b) => a.speaker.name.localeCompare(b.speaker.name));
   const current = { state: activeState, track };
+  const exportParams = new URLSearchParams();
+  if (activeState !== "confirmed") exportParams.set("state", activeState);
+  if (track) exportParams.set("track", track);
+  const exportQs = exportParams.toString();
+  const exportHref = `/api/export/speakers${exportQs ? `?${exportQs}` : ""}`;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-3xl font-extrabold text-ink">Speakers</h1>
-        <p className="mt-1 text-mute">
-          {sorted.length} de {speakers.length} speakers registrados.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-extrabold text-ink">Speakers</h1>
+          <p className="mt-1 text-mute">
+            {sorted.length} de {speakers.length} speakers registrados.
+          </p>
+        </div>
+        <a
+          href={exportHref}
+          className="flex items-center gap-1.5 rounded-full border border-line bg-white px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-purple hover:text-purple"
+        >
+          ⬇ Descargar CSV
+        </a>
       </div>
 
       <div className="space-y-2">
