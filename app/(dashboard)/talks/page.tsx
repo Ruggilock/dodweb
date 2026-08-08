@@ -76,7 +76,7 @@ export default async function TalksPage({ searchParams }: { searchParams: Search
           href={exportHref}
           className="flex items-center gap-1.5 rounded-full border border-line bg-white px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-purple hover:text-purple"
         >
-          ⬇ Descargar CSV
+          ⬇ Descargar Excel
         </a>
       </div>
 

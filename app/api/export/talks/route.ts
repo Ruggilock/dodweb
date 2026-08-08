@@ -1,22 +1,26 @@
+import ExcelJS from "exceljs";
 import { getDashboardData } from "@/lib/pretalx";
-import { toCsv, csvResponse } from "@/lib/csv";
 
 export const dynamic = "force-dynamic";
 
-const HEADERS = [
-  "Charla",
-  "Descripción",
-  "Estado",
-  "Tipo",
-  "Track",
-  "Nivel",
-  "Duración (min)",
-  "Día/Hora",
-  "Sala",
-  "Speaker(s)",
-  "Foto(s) de speaker(s)",
-  "Láminas",
+const COLUMNS: { header: string; width: number }[] = [
+  { header: "Charla", width: 42 },
+  { header: "Descripción", width: 60 },
+  { header: "Estado", width: 12 },
+  { header: "Tipo", width: 12 },
+  { header: "Track", width: 26 },
+  { header: "Nivel", width: 18 },
+  { header: "Duración (min)", width: 12 },
+  { header: "Día/Hora", width: 18 },
+  { header: "Sala", width: 16 },
+  { header: "Láminas", width: 16 },
+  { header: "Speaker", width: 26 },
+  { header: "Foto", width: 44 },
 ];
+
+/** Columns merged vertically across a talk's speaker rows (everything
+ * except the last two, Speaker/Foto, which vary per row). */
+const MERGED_COLUMN_COUNT = COLUMNS.length - 2;
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -41,51 +45,77 @@ export async function GET(request: Request) {
     const byState = state === "all" ? talks : talks.filter((s) => s.state === state);
     filtered = type ? byState.filter((s) => String(s.submissionTypeId) === type) : byState;
   }
+  const sorted = [...filtered].sort((a, b) => a.title.localeCompare(b.title));
 
-  // One row per talk. Speaker(s) and Foto(s) are newline-joined — one line
-  // per speaker within the cell — instead of a separate column per field,
-  // which is friendlier when pasted/opened across different spreadsheet apps.
-  const rows = [...filtered]
-    .sort((a, b) => a.title.localeCompare(b.title))
-    .map((t) => {
-      const track = t.trackId ? trackById.get(t.trackId) : null;
-      const sType = typeById.get(t.submissionTypeId);
-      const tagNames = t.tagIds
-        .map((id) => tagById.get(id)?.name)
-        .filter(Boolean)
-        .join(" | ");
-      const talkSpeakers = t.speakerCodes
-        .map((c) => speakerByCode.get(c))
-        .filter((sp) => sp !== undefined);
-      const speakerNames = talkSpeakers.map((sp) => sp.name).join("\n");
-      const speakerPhotos = talkSpeakers.map((sp) => sp.avatarUrl ?? "").join("\n");
-      const schedule = t.slot?.start
-        ? new Date(t.slot.start).toLocaleString("es-PE", {
-            day: "2-digit",
-            month: "short",
-            hour: "2-digit",
-            minute: "2-digit",
-            timeZone: "America/Lima",
-          })
-        : "";
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Charlas");
+  sheet.columns = COLUMNS.map((c) => ({ width: c.width }));
 
-      return [
-        t.title,
-        t.abstract,
-        t.state,
-        sType?.name ?? "",
-        track?.name ?? "",
-        tagNames,
-        t.durationMinutes,
-        schedule,
-        t.slot?.roomName ?? "",
-        speakerNames,
-        speakerPhotos,
-        t.slidesUrl ?? "",
-      ];
-    });
+  const headerRow = sheet.addRow(COLUMNS.map((c) => c.header));
+  headerRow.font = { bold: true };
+  headerRow.eachCell((cell) => {
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEDE6F5" } };
+  });
 
-  const csv = toCsv(HEADERS, rows);
-  const filename = code ? `charla-${code}.csv` : "charlas-devopsdays-lima-2026.csv";
-  return csvResponse(csv, filename);
+  for (const t of sorted) {
+    const track = t.trackId ? trackById.get(t.trackId) : null;
+    const sType = typeById.get(t.submissionTypeId);
+    const tagNames = t.tagIds
+      .map((id) => tagById.get(id)?.name)
+      .filter(Boolean)
+      .join(" | ");
+    const schedule = t.slot?.start
+      ? new Date(t.slot.start).toLocaleString("es-PE", {
+          day: "2-digit",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "America/Lima",
+        })
+      : "";
+
+    const talkCols = [
+      t.title,
+      t.abstract,
+      t.state,
+      sType?.name ?? "",
+      track?.name ?? "",
+      tagNames,
+      t.durationMinutes,
+      schedule,
+      t.slot?.roomName ?? "",
+      t.slidesUrl ?? "",
+    ];
+
+    const talkSpeakers = t.speakerCodes
+      .map((c) => speakerByCode.get(c))
+      .filter((sp) => sp !== undefined);
+    const speakerRows = talkSpeakers.length > 0 ? talkSpeakers : [null];
+
+    const startRow = sheet.rowCount + 1;
+    for (const sp of speakerRows) {
+      const row = sheet.addRow([...talkCols, sp?.name ?? "", sp?.avatarUrl ?? ""]);
+      row.eachCell((cell) => {
+        cell.alignment = { vertical: "top", wrapText: true };
+      });
+    }
+    const endRow = sheet.rowCount;
+
+    // Merge the talk-level columns vertically across this talk's speaker rows.
+    if (endRow > startRow) {
+      for (let col = 1; col <= MERGED_COLUMN_COUNT; col++) {
+        sheet.mergeCells(startRow, col, endRow, col);
+      }
+    }
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const filename = code ? `charla-${code}.xlsx` : "charlas-devopsdays-lima-2026.xlsx";
+
+  return new Response(buffer, {
+    headers: {
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+    },
+  });
 }
