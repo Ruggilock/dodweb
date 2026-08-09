@@ -145,9 +145,19 @@ La agenda **ya está publicada** (versión `0.11`, 12 versiones de historial). C
 
 ## MCP
 
-`app/api/mcp/route.ts` expone un servidor MCP **público, sin auth, sin token** — excluido a propósito del login gate en `proxy.ts` (matcher con `|api/mcp`). Transporte: Streamable HTTP stateless (`WebStandardStreamableHTTPServerTransport`, sin `sessionIdGenerator`), un `McpServer` nuevo por request.
+`app/api/mcp/route.ts` expone un servidor MCP **público, sin auth, sin token — ni siquiera el `PRETALX_API_TOKEN` del organizador**. Excluido a propósito del login gate en `proxy.ts` (matcher con `|api/mcp`). Transporte: Streamable HTTP stateless (`WebStandardStreamableHTTPServerTransport`, sin `sessionIdGenerator`), un `McpServer` nuevo por request.
 
-**Regla de oro:** el MCP nunca toca `lib/pretalx.ts` directo. Todo pasa por `lib/mcp-data.ts`, la única capa que decide qué es "público" — ahí se cae el email, teléfono, DNI y talla de polo que sí trae `getSpeakers()` para el dashboard autenticado. Si se agrega un tool nuevo, debe consumir `lib/mcp-data.ts`, no `lib/pretalx.ts`.
+**Fuente de datos: la API pública real de Pretalx, no la de organizador.** `lib/pretalx-public.ts` pega directo contra `talks.devopsdays.org` **sin mandar ningún header `Authorization`** — son los mismos endpoints que usaría cualquier página pública del evento. Verificado a mano cuáles preguntas custom expone Pretalx sin token (con `?expand=answers.question`):
+
+| Campo | ¿Público sin token? |
+|---|---|
+| Company, Job Title, Location, LinkedIn | ✅ sí |
+| Social Networks, Phone, DNI, Talla de polo | ❌ no — Pretalx los bloquea igual, no es algo que filtremos nosotros |
+| Todas las preguntas a nivel de charla (incl. Slides) | ❌ no — por eso el MCP no tiene `slidesUrl` |
+| `/speakers/`, `/submissions/`, `/tracks/`, `/submission-types/`, `/rooms/`, `/slots/`, evento base | ✅ sí, sin token |
+| `/answers/` y `/tags/` como endpoints sueltos | ❌ no (401) — por eso se usa `?expand=` en vez de pedirlos aparte |
+
+**Regla de oro:** el MCP nunca toca `lib/pretalx.ts` (el cliente autenticado del dashboard). Todo pasa por `lib/pretalx-public.ts` → `lib/mcp-data.ts`. Si se agrega un tool nuevo, debe consumir `lib/mcp-data.ts`, nunca `lib/pretalx.ts` — así el límite de "cero token" queda garantizado por qué archivo importas, no por disciplina manual.
 
 Alcance: solo **confirmados** (charlas y speakers), excluye submissions tipo "Event" en `list_talks`/`list_speakers` (sí aparecen en `get_agenda`, igual que en el dashboard). Solo lectura, sin tools de escritura.
 
