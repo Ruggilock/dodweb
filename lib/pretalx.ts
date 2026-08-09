@@ -152,6 +152,28 @@ function localized(value: Record<string, string> | null | undefined): string {
   return value.en ?? value.es ?? Object.values(value)[0] ?? "";
 }
 
+export type EventInfo = {
+  name: string;
+  dateFrom: string;
+  dateTo: string;
+  timezone: string;
+};
+
+export async function getEventInfo(): Promise<EventInfo> {
+  const raw = await fetchJson<{
+    name: Record<string, string>;
+    date_from: string;
+    date_to: string;
+    timezone: string;
+  }>("/");
+  return {
+    name: localized(raw.name),
+    dateFrom: raw.date_from,
+    dateTo: raw.date_to,
+    timezone: raw.timezone,
+  };
+}
+
 export async function getTracks(): Promise<Track[]> {
   const raw = await fetchAllPages<RawTrack>("/tracks/");
   return raw.map((t) => ({ id: t.id, name: localized(t.name), color: t.color }));

@@ -25,5 +25,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // /api/mcp is the public, unauthenticated MCP server — see PRETALX.md > MCP.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/mcp).*)"],
 };

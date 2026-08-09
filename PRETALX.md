@@ -142,3 +142,15 @@ La agenda **ya está publicada** (versión `0.11`, 12 versiones de historial). C
 - Keynote va agrupado con Talks en `/talks` (badge distinto), no en sección separada.
 - Sí se incluyó el panel interno de logística — vive en `/speakers/[code]` y `/pendientes`, detrás del mismo login (no hay segundo nivel de acceso). El grid público (`/speakers`) sigue sin mostrar esos campos.
 - Cache: fetch-level `revalidate: 300` en `lib/pretalx.ts` + páginas en `force-dynamic` (no prerender en build time — evita que el build dependa de que la API de Pretalx esté disponible). Botón "Refrescar" en el nav fuerza `revalidateTag`.
+
+## MCP
+
+`app/api/mcp/route.ts` expone un servidor MCP **público, sin auth, sin token** — excluido a propósito del login gate en `proxy.ts` (matcher con `|api/mcp`). Transporte: Streamable HTTP stateless (`WebStandardStreamableHTTPServerTransport`, sin `sessionIdGenerator`), un `McpServer` nuevo por request.
+
+**Regla de oro:** el MCP nunca toca `lib/pretalx.ts` directo. Todo pasa por `lib/mcp-data.ts`, la única capa que decide qué es "público" — ahí se cae el email, teléfono, DNI y talla de polo que sí trae `getSpeakers()` para el dashboard autenticado. Si se agrega un tool nuevo, debe consumir `lib/mcp-data.ts`, no `lib/pretalx.ts`.
+
+Alcance: solo **confirmados** (charlas y speakers), excluye submissions tipo "Event" en `list_talks`/`list_speakers` (sí aparecen en `get_agenda`, igual que en el dashboard). Solo lectura, sin tools de escritura.
+
+**Tools (9):** `list_speakers`, `get_speaker`, `list_talks`, `get_talk`, `get_agenda`, `list_tracks`, `list_session_types`, `get_event_info`, `search`.
+
+Probado end-to-end con un cliente MCP real (`@modelcontextprotocol/sdk` `Client` + `StreamableHTTPClientTransport`), incluyendo un chequeo automatizado de que ningún campo de PII aparece en la respuesta de `list_speakers`.
