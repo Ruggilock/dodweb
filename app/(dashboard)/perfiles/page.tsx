@@ -2,9 +2,9 @@ import Link from "next/link";
 import { getDashboardData } from "@/lib/pretalx";
 import { inferCountry, inferRoleCategory } from "@/lib/profiles";
 import { groupCompanies } from "@/lib/companies";
-import { RankedBarList } from "@/components/RankedBarList";
 import { ExpandableBarList } from "@/components/ExpandableBarList";
 import { StatCard } from "@/components/StatCard";
+import type { Speaker } from "@/lib/types";
 
 // See app/(dashboard)/page.tsx for why this is force-dynamic instead of revalidate.
 export const dynamic = "force-dynamic";
@@ -13,13 +13,29 @@ type SearchParams = Promise<{ state?: string }>;
 
 const OTHER = "Otro / sin especificar";
 
-function countBy<T>(items: T[], key: (item: T) => string): { label: string; count: number }[] {
-  const counts = new Map<string, number>();
+function groupByWithPeople(
+  items: Speaker[],
+  key: (item: Speaker) => string
+): { label: string; count: number; people: { code: string; name: string; avatarUrl: string | null }[] }[] {
+  const groups = new Map<string, { code: string; name: string; avatarUrl: string | null }[]>();
   for (const item of items) {
     const k = key(item);
-    counts.set(k, (counts.get(k) ?? 0) + 1);
+    const list = groups.get(k) ?? [];
+    list.push({ code: item.code, name: item.name, avatarUrl: item.avatarUrl });
+    groups.set(k, list);
   }
-  return [...counts.entries()].map(([label, count]) => ({ label, count }));
+  return [...groups.entries()].map(([label, people]) => ({ label, count: people.length, people }));
+}
+
+function DownloadCsv({ href }: { href: string }) {
+  return (
+    <a
+      href={href}
+      className="inline-flex items-center gap-1 text-xs font-medium text-mute hover:text-purple"
+    >
+      ⬇ Descargar CSV
+    </a>
+  );
 }
 
 export default async function PerfilesPage({ searchParams }: { searchParams: SearchParams }) {
@@ -36,8 +52,8 @@ export default async function PerfilesPage({ searchParams }: { searchParams: Sea
           sp.submissionCodes.some((c) => submissionByCode.get(c)?.state === activeState)
         );
 
-  const countries = countBy(filtered, (sp) => inferCountry(sp.location) ?? OTHER);
-  const roles = countBy(filtered, (sp) => inferRoleCategory(sp.jobTitle));
+  const countries = groupByWithPeople(filtered, (sp) => inferCountry(sp.location) ?? OTHER);
+  const roles = groupByWithPeople(filtered, (sp) => inferRoleCategory(sp.jobTitle));
   const companies = groupCompanies(
     filtered
       .filter((sp) => sp.company?.trim())
@@ -48,6 +64,7 @@ export default async function PerfilesPage({ searchParams }: { searchParams: Sea
   );
 
   const distinctCountries = countries.filter((c) => c.label !== OTHER).length;
+  const exportQs = activeState !== "confirmed" ? `&state=${activeState}` : "";
 
   return (
     <div className="space-y-10">
@@ -95,26 +112,35 @@ export default async function PerfilesPage({ searchParams }: { searchParams: Sea
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section className="rounded-lg border border-line bg-white p-5">
-          <h2 className="mb-1 font-display text-lg font-bold text-ink">Países</h2>
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <h2 className="font-display text-lg font-bold text-ink">Países</h2>
+            <DownloadCsv href={`/api/export/perfiles?section=paises${exportQs}`} />
+          </div>
           <p className="mb-4 text-xs text-mute">
-            Inferido del campo &quot;Ubicación&quot; (texto libre) que llena cada speaker.
+            Inferido del campo &quot;Ubicación&quot; (texto libre) que llena cada speaker — click
+            para ver quiénes son.
           </p>
-          <RankedBarList items={countries} />
+          <ExpandableBarList items={countries} />
         </section>
 
         <section className="rounded-lg border border-line bg-white p-5">
-          <h2 className="mb-1 font-display text-lg font-bold text-ink">Perfil / rol</h2>
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <h2 className="font-display text-lg font-bold text-ink">Perfil / rol</h2>
+            <DownloadCsv href={`/api/export/perfiles?section=roles${exportQs}`} />
+          </div>
           <p className="mb-4 text-xs text-mute">
-            Inferido del &quot;Job Title&quot; declarado (CTO, VP, Architect, Engineer...).
+            Inferido del &quot;Job Title&quot; declarado (CTO, VP, Architect, Engineer...) — click
+            para ver quiénes son.
           </p>
-          <RankedBarList items={roles} />
+          <ExpandableBarList items={roles} />
         </section>
       </div>
 
       <section className="rounded-lg border border-line bg-white p-5">
-        <h2 className="mb-1 font-display text-lg font-bold text-ink">
-          Empresas ({companies.length})
-        </h2>
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <h2 className="font-display text-lg font-bold text-ink">Empresas ({companies.length})</h2>
+          <DownloadCsv href={`/api/export/perfiles?section=empresas${exportQs}`} />
+        </div>
         <p className="mb-4 text-xs text-mute">
           Todas las empresas representadas, de mayor a menor. Variantes del mismo nombre
           (ej. BCP / Banco de Crédito del Perú) están agrupadas — click para ver quiénes son.
