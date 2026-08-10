@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { getDashboardData } from "@/lib/pretalx";
-import { inferCountry, inferRoleCategory } from "@/lib/profiles";
+import { inferCountry, inferRoleCategory, groupByWithPeople } from "@/lib/profiles";
 import { groupCompanies } from "@/lib/companies";
 import { ExpandableBarList } from "@/components/ExpandableBarList";
 import { StatCard } from "@/components/StatCard";
-import type { Speaker } from "@/lib/types";
 
 // See app/(dashboard)/page.tsx for why this is force-dynamic instead of revalidate.
 export const dynamic = "force-dynamic";
@@ -12,20 +11,6 @@ export const dynamic = "force-dynamic";
 type SearchParams = Promise<{ state?: string }>;
 
 const OTHER = "Otro / sin especificar";
-
-function groupByWithPeople(
-  items: Speaker[],
-  key: (item: Speaker) => string
-): { label: string; count: number; people: { code: string; name: string; avatarUrl: string | null }[] }[] {
-  const groups = new Map<string, { code: string; name: string; avatarUrl: string | null }[]>();
-  for (const item of items) {
-    const k = key(item);
-    const list = groups.get(k) ?? [];
-    list.push({ code: item.code, name: item.name, avatarUrl: item.avatarUrl });
-    groups.set(k, list);
-  }
-  return [...groups.entries()].map(([label, people]) => ({ label, count: people.length, people }));
-}
 
 function DownloadCsv({ href }: { href: string }) {
   return (
@@ -52,8 +37,13 @@ export default async function PerfilesPage({ searchParams }: { searchParams: Sea
           sp.submissionCodes.some((c) => submissionByCode.get(c)?.state === activeState)
         );
 
-  const countries = groupByWithPeople(filtered, (sp) => inferCountry(sp.location) ?? OTHER);
-  const roles = groupByWithPeople(filtered, (sp) => inferRoleCategory(sp.jobTitle));
+  const toPerson = (sp: (typeof filtered)[number]) => ({
+    code: sp.code,
+    name: sp.name,
+    avatarUrl: sp.avatarUrl,
+  });
+  const countries = groupByWithPeople(filtered, (sp) => inferCountry(sp.location) ?? OTHER, toPerson);
+  const roles = groupByWithPeople(filtered, (sp) => inferRoleCategory(sp.jobTitle), toPerson);
   const companies = groupCompanies(
     filtered
       .filter((sp) => sp.company?.trim())

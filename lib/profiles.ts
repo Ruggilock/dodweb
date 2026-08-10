@@ -6,6 +6,23 @@
  * sin especificar" rather than being guessed wrong.
  */
 
+import type { Person } from "@/lib/companies";
+
+export function groupByWithPeople<T>(
+  items: T[],
+  key: (item: T) => string,
+  toPerson: (item: T) => Person
+): { label: string; count: number; people: Person[] }[] {
+  const groups = new Map<string, Person[]>();
+  for (const item of items) {
+    const k = key(item);
+    const list = groups.get(k) ?? [];
+    list.push(toPerson(item));
+    groups.set(k, list);
+  }
+  return [...groups.entries()].map(([label, people]) => ({ label, count: people.length, people }));
+}
+
 function normalize(s: string): string {
   return s
     .normalize("NFD")

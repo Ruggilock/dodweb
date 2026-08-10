@@ -1,25 +1,16 @@
 import { getDashboardData } from "@/lib/pretalx";
-import { inferCountry, inferRoleCategory } from "@/lib/profiles";
+import { inferCountry, inferRoleCategory, groupByWithPeople } from "@/lib/profiles";
 import { groupCompanies } from "@/lib/companies";
 import { toCsv, csvResponse } from "@/lib/csv";
 
 export const dynamic = "force-dynamic";
 
 const OTHER = "Otro / sin especificar";
-const SECTION_LABELS: Record<string, [string, string]> = {
-  paises: ["País", "Speakers"],
-  roles: ["Perfil / rol", "Speakers"],
-  empresas: ["Empresa", "Speakers"],
+const SECTION_LABELS: Record<string, [string, string, string]> = {
+  paises: ["País", "Speakers", "Nombres"],
+  roles: ["Perfil / rol", "Speakers", "Nombres"],
+  empresas: ["Empresa", "Speakers", "Nombres"],
 };
-
-function countBy<T>(items: T[], key: (item: T) => string): { label: string; count: number }[] {
-  const counts = new Map<string, number>();
-  for (const item of items) {
-    const k = key(item);
-    counts.set(k, (counts.get(k) ?? 0) + 1);
-  }
-  return [...counts.entries()].map(([label, count]) => ({ label, count }));
-}
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -40,27 +31,30 @@ export async function GET(request: Request) {
           sp.submissionCodes.some((c) => submissionByCode.get(c)?.state === state)
         );
 
-  let rows: { label: string; count: number }[];
+  const toPerson = (sp: (typeof filtered)[number]) => ({
+    code: sp.code,
+    name: sp.name,
+    avatarUrl: sp.avatarUrl,
+  });
+
+  let rows: { label: string; count: number; people: { name: string }[] }[];
   if (section === "paises") {
-    rows = countBy(filtered, (sp) => inferCountry(sp.location) ?? OTHER);
+    rows = groupByWithPeople(filtered, (sp) => inferCountry(sp.location) ?? OTHER, toPerson);
   } else if (section === "roles") {
-    rows = countBy(filtered, (sp) => inferRoleCategory(sp.jobTitle));
+    rows = groupByWithPeople(filtered, (sp) => inferRoleCategory(sp.jobTitle), toPerson);
   } else {
     rows = groupCompanies(
       filtered
         .filter((sp) => sp.company?.trim())
-        .map((sp) => ({
-          company: sp.company!,
-          person: { code: sp.code, name: sp.name, avatarUrl: sp.avatarUrl },
-        }))
+        .map((sp) => ({ company: sp.company!, person: toPerson(sp) }))
     );
   }
 
   const sorted = [...rows].sort((a, b) => b.count - a.count);
-  const [labelHeader, countHeader] = SECTION_LABELS[section];
+  const [labelHeader, countHeader, namesHeader] = SECTION_LABELS[section];
   const csv = toCsv(
-    [labelHeader, countHeader],
-    sorted.map((r) => [r.label, r.count])
+    [labelHeader, countHeader, namesHeader],
+    sorted.map((r) => [r.label, r.count, r.people.map((p) => p.name).join("\n")])
   );
 
   return csvResponse(csv, `perfiles-${section}-devopsdays-lima-2026.csv`);
