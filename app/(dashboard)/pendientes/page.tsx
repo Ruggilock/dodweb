@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { getDashboardData } from "@/lib/pretalx";
 import { CompletionBar } from "@/components/CompletionBar";
+import { StateBadge } from "@/components/StateBadge";
 
 // See app/(dashboard)/page.tsx for why this is force-dynamic instead of revalidate.
 export const dynamic = "force-dynamic";
@@ -48,6 +49,10 @@ export default async function PendientesPage() {
     .sort((a, b) => a.title.localeCompare(b.title));
   const missingTshirt = confirmedSpeakers.filter((sp) => !sp.tshirtSize);
   const missingDni = confirmedSpeakers.filter((sp) => !sp.identityDocument);
+
+  const demoSubmissions = submissions
+    .filter((s) => typeById.get(s.submissionTypeId)?.name.toLowerCase() === "demo session")
+    .sort((a, b) => a.title.localeCompare(b.title));
 
   return (
     <div className="space-y-10">
@@ -125,6 +130,43 @@ export default async function PendientesPage() {
             </li>
           ))}
         </PendingList>
+      </div>
+
+      <div className="rounded-lg border border-line bg-white p-5">
+        <h2 className="mb-3 font-display text-sm font-bold uppercase tracking-wide text-ink">
+          Demos — estado de speakers ({demoSubmissions.length})
+        </h2>
+        {demoSubmissions.length === 0 ? (
+          <p className="text-sm text-mute">No hay sesiones de tipo Demo.</p>
+        ) : (
+          <ul>
+            {demoSubmissions.map((s) => (
+              <li
+                key={s.code}
+                className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2 last:border-0"
+              >
+                <div>
+                  <p className="text-sm font-medium text-ink">{s.title}</p>
+                  <p className="text-xs text-mute">
+                    {s.speakerCodes
+                      .map((c) => speakerByCode.get(c))
+                      .filter((sp) => sp !== undefined)
+                      .map((sp) => (
+                        <Link key={sp.code} href={`/speakers/${sp.code}`} className="hover:text-purple">
+                          {sp.name}
+                        </Link>
+                      ))
+                      .reduce<ReactNode[]>(
+                        (acc, el, i) => (i === 0 ? [el] : [...acc, ", ", el]),
+                        []
+                      )}
+                  </p>
+                </div>
+                <StateBadge state={s.state} />
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );
