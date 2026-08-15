@@ -50,6 +50,8 @@ export type Submission = {
   slot: ScheduleSlot | null;
   /** URL of the uploaded slides file, or null if not uploaded yet. */
   slidesUrl: string | null;
+  /** Talk language, from Pretalx's native `content_locale` ("es" / "en"). */
+  language: string;
   /**
    * Internal committee member assigned to this talk (Pretalx question 497,
    * `contains_personal_data: true`, `is_visible_to_reviewers: false`).

@@ -148,6 +148,7 @@ type RawSubmission = {
   track: number | null;
   submission_type: number;
   tags: number[];
+  content_locale: string;
 };
 
 function localized(value: Record<string, string> | null | undefined): string {
@@ -279,6 +280,7 @@ export async function getSubmissions(): Promise<Submission[]> {
     slot: slots.get(s.code) ?? null,
     slidesUrl: slides.get(s.code) ?? null,
     coordinator: coordinators.get(s.code) ?? null,
+    language: s.content_locale,
   }));
 }
 

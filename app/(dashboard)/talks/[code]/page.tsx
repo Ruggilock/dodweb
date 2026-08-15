@@ -7,6 +7,8 @@ import { StateBadge } from "@/components/StateBadge";
 // See app/(dashboard)/page.tsx for why this is force-dynamic instead of revalidate.
 export const dynamic = "force-dynamic";
 
+const LANGUAGE_LABELS: Record<string, string> = { es: "Español", en: "English" };
+
 type Params = Promise<{ code: string }>;
 
 export default async function TalkDetailPage({ params }: { params: Params }) {
@@ -54,6 +56,7 @@ export default async function TalkDetailPage({ params }: { params: Params }) {
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-mute">
           {track && <span>{track.name}</span>}
           <span>{talk.durationMinutes} min</span>
+          <span>{LANGUAGE_LABELS[talk.language] ?? talk.language}</span>
           {talk.slot?.start && (
             <span>
               {new Date(talk.slot.start).toLocaleString("es-PE", {

@@ -26,6 +26,8 @@ function buildHref(current: { state: string; type?: string }, updates: { state?:
   return `/talks${qs ? `?${qs}` : ""}`;
 }
 
+const LANGUAGE_LABELS: Record<string, string> = { es: "Español", en: "English" };
+
 function formatSlot(start: string, roomName: string | null) {
   const date = new Date(start).toLocaleString("es-PE", {
     day: "2-digit",
@@ -134,6 +136,7 @@ export default async function TalksPage({ searchParams }: { searchParams: Search
               <th className="px-4 py-3 font-medium">Speaker(s)</th>
               <th className="px-4 py-3 font-medium">Track</th>
               <th className="px-4 py-3 font-medium">Tipo</th>
+              <th className="px-4 py-3 font-medium">Idioma</th>
               <th className="px-4 py-3 font-medium">Estado</th>
               <th className="px-4 py-3 font-medium">Horario</th>
               <th className="px-4 py-3 font-medium">Láminas</th>
@@ -163,6 +166,7 @@ export default async function TalksPage({ searchParams }: { searchParams: Search
                   <td className="px-4 py-3">
                     <Badge tone={isKeynote ? "purple" : "mute"}>{sType?.name ?? "—"}</Badge>
                   </td>
+                  <td className="px-4 py-3 text-mute">{LANGUAGE_LABELS[s.language] ?? s.language}</td>
                   <td className="px-4 py-3">
                     <StateBadge state={s.state} />
                   </td>
