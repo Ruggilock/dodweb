@@ -136,6 +136,7 @@ export default async function TalksPage({ searchParams }: { searchParams: Search
               <th className="px-4 py-3 font-medium">Tipo</th>
               <th className="px-4 py-3 font-medium">Estado</th>
               <th className="px-4 py-3 font-medium">Horario</th>
+              <th className="px-4 py-3 font-medium">Láminas</th>
             </tr>
           </thead>
           <tbody>
@@ -173,6 +174,20 @@ export default async function TalksPage({ searchParams }: { searchParams: Search
                       </>
                     ) : (
                       "—"
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {s.slidesUrl ? (
+                      <a
+                        href={s.slidesUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-purple hover:underline"
+                      >
+                        Ver ↗
+                      </a>
+                    ) : (
+                      <Badge tone="warn">Pendiente</Badge>
                     )}
                   </td>
                 </tr>
