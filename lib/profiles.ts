@@ -62,50 +62,67 @@ const COUNTRY_ALIASES: [string, string][] = [
   ["france", "Francia"],
 ];
 
-const CITY_ALIASES: [string, string][] = [
-  ["lima", "Perú"],
-  ["tacna", "Perú"],
-  ["piura", "Perú"],
-  ["arequipa", "Perú"],
-  ["cusco", "Perú"],
-  ["medellin", "Colombia"],
-  ["medellín", "Colombia"],
-  ["bogota", "Colombia"],
-  ["bucaramanga", "Colombia"],
-  ["cali", "Colombia"],
-  ["sao paulo", "Brasil"],
-  ["rio de janeiro", "Brasil"],
-  ["santiago", "Chile"],
-  ["quito", "Ecuador"],
-  ["guayaquil", "Ecuador"],
-  ["buenos aires", "Argentina"],
-  ["monterrey", "México"],
-  ["ciudad de mexico", "México"],
-  ["cdmx", "México"],
-  ["guadalajara", "México"],
-  ["miami", "Estados Unidos"],
-  ["boston", "Estados Unidos"],
-  ["florida", "Estados Unidos"],
-  ["new york", "Estados Unidos"],
-  ["bangalore", "India"],
-  ["holzkirchen", "Alemania"],
-  ["montevideo", "Uruguay"],
+/** [normalized key, display city name, country name] */
+const CITY_ALIASES: [string, string, string][] = [
+  ["lima", "Lima", "Perú"],
+  ["tacna", "Tacna", "Perú"],
+  ["piura", "Piura", "Perú"],
+  ["arequipa", "Arequipa", "Perú"],
+  ["cusco", "Cusco", "Perú"],
+  ["medellin", "Medellín", "Colombia"],
+  ["medellín", "Medellín", "Colombia"],
+  ["bogota", "Bogotá", "Colombia"],
+  ["bucaramanga", "Bucaramanga", "Colombia"],
+  ["cali", "Cali", "Colombia"],
+  ["sao paulo", "São Paulo", "Brasil"],
+  ["rio de janeiro", "Río de Janeiro", "Brasil"],
+  ["santiago", "Santiago", "Chile"],
+  ["quito", "Quito", "Ecuador"],
+  ["guayaquil", "Guayaquil", "Ecuador"],
+  ["buenos aires", "Buenos Aires", "Argentina"],
+  ["monterrey", "Monterrey", "México"],
+  ["ciudad de mexico", "Ciudad de México", "México"],
+  ["cdmx", "Ciudad de México", "México"],
+  ["guadalajara", "Guadalajara", "México"],
+  ["miami", "Miami", "Estados Unidos"],
+  ["boston", "Boston", "Estados Unidos"],
+  ["florida", "Florida", "Estados Unidos"],
+  ["new york", "New York", "Estados Unidos"],
+  ["bangalore", "Bangalore", "India"],
+  ["holzkirchen", "Holzkirchen", "Alemania"],
+  ["montevideo", "Montevideo", "Uruguay"],
 ];
+
+function matchWords(n: string, key: string): boolean {
+  return key.includes(" ")
+    ? n.includes(key)
+    : new Set(n.split(/[^a-z]+/).filter(Boolean)).has(key);
+}
 
 export function inferCountry(raw: string | null): string | null {
   if (!raw) return null;
   const n = normalize(raw);
   if (n.replace(/[^a-z]/g, "").length < 2) return null;
 
-  const words = new Set(n.split(/[^a-z]+/).filter(Boolean));
-  const match = (list: [string, string][]) => {
-    for (const [key, name] of list) {
-      if (key.includes(" ") ? n.includes(key) : words.has(key)) return name;
-    }
-    return null;
-  };
+  for (const [key, name] of COUNTRY_ALIASES) {
+    if (matchWords(n, key)) return name;
+  }
+  for (const [key, , country] of CITY_ALIASES) {
+    if (matchWords(n, key)) return country;
+  }
+  return null;
+}
 
-  return match(COUNTRY_ALIASES) ?? match(CITY_ALIASES);
+/** Best-effort city extraction — only recognized cities are named; everything else is null. */
+export function inferCity(raw: string | null): string | null {
+  if (!raw) return null;
+  const n = normalize(raw);
+  if (n.replace(/[^a-z]/g, "").length < 2) return null;
+
+  for (const [key, city] of CITY_ALIASES) {
+    if (matchWords(n, key)) return city;
+  }
+  return null;
 }
 
 const ROLE_BUCKETS: [RegExp, string][] = [

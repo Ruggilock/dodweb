@@ -1,5 +1,5 @@
 import { getDashboardData } from "@/lib/pretalx";
-import { inferCountry, inferRoleCategory, groupByWithPeople } from "@/lib/profiles";
+import { inferCountry, inferCity, inferRoleCategory, groupByWithPeople } from "@/lib/profiles";
 import { groupCompanies } from "@/lib/companies";
 import { toCsv, csvResponse } from "@/lib/csv";
 
@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 const OTHER = "Otro / sin especificar";
 const SECTION_LABELS: Record<string, [string, string, string]> = {
   paises: ["País", "Speakers", "Nombres"],
+  ciudades: ["Ciudad", "Speakers", "Nombres"],
   roles: ["Perfil / rol", "Speakers", "Nombres"],
   empresas: ["Empresa", "Speakers", "Nombres"],
 };
@@ -40,6 +41,8 @@ export async function GET(request: Request) {
   let rows: { label: string; count: number; people: { name: string }[] }[];
   if (section === "paises") {
     rows = groupByWithPeople(filtered, (sp) => inferCountry(sp.location) ?? OTHER, toPerson);
+  } else if (section === "ciudades") {
+    rows = groupByWithPeople(filtered, (sp) => inferCity(sp.location) ?? OTHER, toPerson);
   } else if (section === "roles") {
     rows = groupByWithPeople(filtered, (sp) => inferRoleCategory(sp.jobTitle), toPerson);
   } else {

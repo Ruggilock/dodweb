@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getDashboardData } from "@/lib/pretalx";
-import { inferCountry, inferRoleCategory, groupByWithPeople } from "@/lib/profiles";
+import { inferCountry, inferCity, inferRoleCategory, groupByWithPeople } from "@/lib/profiles";
 import { groupCompanies } from "@/lib/companies";
 import { ExpandableBarList } from "@/components/ExpandableBarList";
 import { StatCard } from "@/components/StatCard";
@@ -43,6 +43,7 @@ export default async function PerfilesPage({ searchParams }: { searchParams: Sea
     avatarUrl: sp.avatarUrl,
   });
   const countries = groupByWithPeople(filtered, (sp) => inferCountry(sp.location) ?? OTHER, toPerson);
+  const cities = groupByWithPeople(filtered, (sp) => inferCity(sp.location) ?? OTHER, toPerson);
   const roles = groupByWithPeople(filtered, (sp) => inferRoleCategory(sp.jobTitle), toPerson);
   const companies = groupCompanies(
     filtered
@@ -100,7 +101,7 @@ export default async function PerfilesPage({ searchParams }: { searchParams: Sea
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <section className="rounded-lg border border-line bg-white p-5">
           <div className="mb-1 flex items-center justify-between gap-2">
             <h2 className="font-display text-lg font-bold text-ink">Países</h2>
@@ -111,6 +112,18 @@ export default async function PerfilesPage({ searchParams }: { searchParams: Sea
             para ver quiénes son.
           </p>
           <ExpandableBarList items={countries} />
+        </section>
+
+        <section className="rounded-lg border border-line bg-white p-5">
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <h2 className="font-display text-lg font-bold text-ink">Ciudad</h2>
+            <DownloadCsv href={`/api/export/perfiles?section=ciudades${exportQs}`} />
+          </div>
+          <p className="mb-4 text-xs text-mute">
+            Ciudades reconocidas dentro del campo &quot;Ubicación&quot; — click para ver quiénes
+            son.
+          </p>
+          <ExpandableBarList items={cities} />
         </section>
 
         <section className="rounded-lg border border-line bg-white p-5">
