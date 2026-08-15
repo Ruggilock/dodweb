@@ -29,6 +29,9 @@ export async function GET(request: Request) {
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state") ?? "confirmed";
   const type = url.searchParams.get("type");
+  const track = url.searchParams.get("track");
+  const language = url.searchParams.get("language");
+  const coordinator = url.searchParams.get("coordinator");
 
   const { submissions, speakers, tracks, submissionTypes, tags } = await getDashboardData();
   const speakerByCode = new Map(speakers.map((s) => [s.code, s]));
@@ -38,14 +41,20 @@ export async function GET(request: Request) {
 
   let filtered: typeof submissions;
   if (code) {
-    // Single-talk export (from the talk detail page) — ignores state/type filters.
+    // Single-talk export (from the talk detail page) — ignores state/type/etc filters.
     filtered = submissions.filter((s) => s.code === code);
   } else {
     const talks = submissions.filter(
       (s) => typeById.get(s.submissionTypeId)?.name.toLowerCase() !== "event"
     );
-    const byState = state === "all" ? talks : talks.filter((s) => s.state === state);
-    filtered = type ? byState.filter((s) => String(s.submissionTypeId) === type) : byState;
+    filtered = talks.filter((s) => {
+      const stateMatch = state === "all" || s.state === state;
+      const typeMatch = !type || String(s.submissionTypeId) === type;
+      const trackMatch = !track || String(s.trackId) === track;
+      const languageMatch = !language || s.language === language;
+      const coordinatorMatch = !coordinator || s.coordinator === coordinator;
+      return stateMatch && typeMatch && trackMatch && languageMatch && coordinatorMatch;
+    });
   }
   const sorted = [...filtered].sort((a, b) => a.title.localeCompare(b.title));
 
