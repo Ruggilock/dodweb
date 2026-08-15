@@ -54,8 +54,10 @@ export type Submission = {
 
 /**
  * `email`, `phone`, `identityDocument` and `tshirtSize` are PII/logistics
- * fields. Only render them on the speaker detail page (/speakers/[code])
- * and the /pendientes ops dashboard — never on the public speakers grid.
+ * fields. Only render them on the speaker detail page (/speakers/[code]),
+ * the /pendientes ops dashboard, and the /speakers "Filas" table view
+ * (email only, opt-in via ?view=rows) — never on the /speakers card grid
+ * or CSV/MCP output beyond those same surfaces.
  * Committee notes are still never fetched at all — see lib/pretalx.ts.
  */
 export type Speaker = {
