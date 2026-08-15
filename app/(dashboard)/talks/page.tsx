@@ -137,6 +137,7 @@ export default async function TalksPage({ searchParams }: { searchParams: Search
               <th className="px-4 py-3 font-medium">Estado</th>
               <th className="px-4 py-3 font-medium">Horario</th>
               <th className="px-4 py-3 font-medium">Láminas</th>
+              <th className="px-4 py-3 font-medium">Coordinador</th>
             </tr>
           </thead>
           <tbody>
@@ -190,6 +191,7 @@ export default async function TalksPage({ searchParams }: { searchParams: Search
                       <Badge tone="warn">Pendiente</Badge>
                     )}
                   </td>
+                  <td className="px-4 py-3 text-mute">{s.coordinator ?? "—"}</td>
                 </tr>
               );
             })}

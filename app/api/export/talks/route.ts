@@ -14,6 +14,7 @@ const COLUMNS: { header: string; width: number }[] = [
   { header: "Día/Hora", width: 18 },
   { header: "Sala", width: 16 },
   { header: "Láminas", width: 16 },
+  { header: "Coordinador", width: 16 },
   { header: "Speaker", width: 26 },
   { header: "Foto", width: 44 },
 ];
@@ -85,6 +86,7 @@ export async function GET(request: Request) {
       schedule,
       t.slot?.roomName ?? "",
       t.slidesUrl ?? "",
+      t.coordinator ?? "",
     ];
 
     const talkSpeakers = t.speakerCodes

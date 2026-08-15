@@ -50,6 +50,13 @@ export type Submission = {
   slot: ScheduleSlot | null;
   /** URL of the uploaded slides file, or null if not uploaded yet. */
   slidesUrl: string | null;
+  /**
+   * Internal committee member assigned to this talk (Pretalx question 497,
+   * `contains_personal_data: true`, `is_visible_to_reviewers: false`).
+   * Same restriction as the internal speaker fields above — dashboard only,
+   * never the MCP or any public surface.
+   */
+  coordinator: string | null;
 };
 
 /**

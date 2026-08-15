@@ -119,6 +119,15 @@ export default async function TalkDetailPage({ params }: { params: Params }) {
       </section>
 
       <section>
+        <h2 className="mb-4 font-display text-lg font-bold text-ink">Coordinador</h2>
+        {talk.coordinator ? (
+          <p className="text-sm text-ink">{talk.coordinator}</p>
+        ) : (
+          <Badge tone="warn">Sin asignar</Badge>
+        )}
+      </section>
+
+      <section>
         <h2 className="mb-4 font-display text-lg font-bold text-ink">Material</h2>
         {talk.slidesUrl ? (
           <a

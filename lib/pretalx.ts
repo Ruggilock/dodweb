@@ -43,6 +43,9 @@ const INTERNAL_SPEAKER_QUESTIONS = {
 /** Submission-target question used to track slide uploads. */
 const SLIDES_QUESTION_ID = 462;
 
+/** Submission-target question (internal, PII) tracking the assigned committee coordinator. */
+const COORDINATOR_QUESTION_ID = 497;
+
 type Paginated<T> = {
   count: number;
   next: string | null;
@@ -256,10 +259,11 @@ export async function getSpeakers(): Promise<Speaker[]> {
 }
 
 export async function getSubmissions(): Promise<Submission[]> {
-  const [raw, slots, slides] = await Promise.all([
+  const [raw, slots, slides, coordinators] = await Promise.all([
     fetchAllPages<RawSubmission>("/submissions/"),
     getSlotsBySubmission(),
     fetchAnswerMap(SLIDES_QUESTION_ID, "submission"),
+    fetchAnswerMap(COORDINATOR_QUESTION_ID, "submission"),
   ]);
 
   return raw.map((s) => ({
@@ -274,6 +278,7 @@ export async function getSubmissions(): Promise<Submission[]> {
     tagIds: s.tags,
     slot: slots.get(s.code) ?? null,
     slidesUrl: slides.get(s.code) ?? null,
+    coordinator: coordinators.get(s.code) ?? null,
   }));
 }
 

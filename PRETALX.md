@@ -72,6 +72,7 @@ Preguntas custom con `target: submission`:
 | 397 | ¿Primera vez en DevOpsDays? | choices | interna |
 | 399 | Notas para el comité | text | 🔒 nunca se fetchea |
 | 462 | Slides | file | ⚙️ tracked en `/pendientes` (2/165 subidas a la fecha del último check) |
+| 497 | Coordinador (interno: "Cordinator") | choices | 🔒 interna, `contains_personal_data: true` — opciones: Corrado/Ronald/Jaime/Miguel/Fredy. Mostrada en `/talks` y `/talks/[code]` únicamente. |
 
 ### Tracks (6)
 `Platform Engineering & DevOps` (200) · `Enterprise AI & Data Strategy` (202) · `Security & Technology Transformation` (201) · `Modern Leadership & Culture` (199) · `Event` (229) · `Lightning talk` (230)
