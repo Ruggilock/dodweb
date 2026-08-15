@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { getDashboardData } from "@/lib/pretalx";
+import { Badge } from "@/components/Badge";
 import type { SubmissionState } from "@/lib/types";
 
 // See app/(dashboard)/page.tsx for why this is force-dynamic instead of revalidate.
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ state?: string; track?: string; view?: string }>;
+type SearchParams = Promise<{ state?: string; track?: string; type?: string; view?: string }>;
 
 /** Defaults to "confirmed" — same as /talks, it's the actual programa. */
 const STATE_FILTERS: { key: SubmissionState | "all"; label: string }[] = [
@@ -15,26 +16,29 @@ const STATE_FILTERS: { key: SubmissionState | "all"; label: string }[] = [
 ];
 
 function buildHref(
-  current: { state: string; track?: string; view: string },
-  updates: { state?: string; track?: string; view?: string }
+  current: { state: string; track?: string; type?: string; view: string },
+  updates: { state?: string; track?: string; type?: string; view?: string }
 ) {
   const state = updates.state ?? current.state;
   const track = "track" in updates ? updates.track : current.track;
+  const type = "type" in updates ? updates.type : current.type;
   const view = updates.view ?? current.view;
   const params = new URLSearchParams();
   if (state && state !== "confirmed") params.set("state", state);
   if (track) params.set("track", track);
+  if (type) params.set("type", type);
   if (view && view !== "grid") params.set("view", view);
   const qs = params.toString();
   return `/speakers${qs ? `?${qs}` : ""}`;
 }
 
 export default async function SpeakersPage({ searchParams }: { searchParams: SearchParams }) {
-  const { state, track, view } = await searchParams;
-  const { speakers, submissions, tracks } = await getDashboardData();
+  const { state, track, type, view } = await searchParams;
+  const { speakers, submissions, tracks, submissionTypes } = await getDashboardData();
 
   const submissionByCode = new Map(submissions.map((s) => [s.code, s]));
   const trackById = new Map(tracks.map((t) => [t.id, t]));
+  const typeById = new Map(submissionTypes.map((t) => [t.id, t]));
   const activeState = state ?? "confirmed";
 
   const withTalks = speakers.map((sp) => ({
@@ -47,15 +51,17 @@ export default async function SpeakersPage({ searchParams }: { searchParams: Sea
   const filtered = withTalks.filter(({ talks }) => {
     const stateMatch = activeState === "all" || talks.some((t) => t.state === activeState);
     const trackMatch = !track || talks.some((t) => String(t.trackId) === track);
-    return stateMatch && trackMatch;
+    const typeMatch = !type || talks.some((t) => String(t.submissionTypeId) === type);
+    return stateMatch && trackMatch && typeMatch;
   });
 
   const sorted = filtered.sort((a, b) => a.speaker.name.localeCompare(b.speaker.name));
   const activeView = view === "rows" ? "rows" : "grid";
-  const current = { state: activeState, track, view: activeView };
+  const current = { state: activeState, track, type, view: activeView };
   const exportParams = new URLSearchParams();
   if (activeState !== "confirmed") exportParams.set("state", activeState);
   if (track) exportParams.set("track", track);
+  if (type) exportParams.set("type", type);
   const exportQs = exportParams.toString();
   const exportHref = `/api/export/speakers${exportQs ? `?${exportQs}` : ""}`;
 
@@ -140,6 +146,33 @@ export default async function SpeakersPage({ searchParams }: { searchParams: Sea
             </Link>
           ))}
         </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium uppercase tracking-wide text-mute">Tipo de sesión</span>
+          <Link
+            href={buildHref(current, { type: undefined })}
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+              !type
+                ? "bg-purple text-white"
+                : "border border-line bg-white text-ink hover:border-purple"
+            }`}
+          >
+            Todos
+          </Link>
+          {submissionTypes.map((t) => (
+            <Link
+              key={t.id}
+              href={buildHref(current, { type: String(t.id) })}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                type === String(t.id)
+                  ? "bg-purple text-white"
+                  : "border border-line bg-white text-ink hover:border-purple"
+              }`}
+            >
+              {t.name}
+            </Link>
+          ))}
+        </div>
       </div>
 
       {activeView === "rows" ? (
@@ -152,6 +185,7 @@ export default async function SpeakersPage({ searchParams }: { searchParams: Sea
                 <th className="px-4 py-3 font-medium">Cargo / Empresa</th>
                 <th className="px-4 py-3 font-medium">Ubicación</th>
                 <th className="px-4 py-3 font-medium">Charla(s)</th>
+                <th className="px-4 py-3 font-medium">Tipo de sesión</th>
               </tr>
             </thead>
             <tbody>
@@ -199,6 +233,25 @@ export default async function SpeakersPage({ searchParams }: { searchParams: Sea
                           </span>
                         ))
                       : "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    {talks.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {talks.map((t) => {
+                          const sType = typeById.get(t.submissionTypeId);
+                          return (
+                            <Badge
+                              key={t.code}
+                              tone={sType?.name.toLowerCase() === "keynote" ? "purple" : "mute"}
+                            >
+                              {sType?.name ?? "—"}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <span className="text-mute">—</span>
+                    )}
                   </td>
                 </tr>
               ))}

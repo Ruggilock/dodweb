@@ -17,6 +17,7 @@ const HEADERS = [
   "Charlas",
   "Estado charla(s)",
   "Track(s)",
+  "Tipo(s) de sesión",
   "Horario",
   "Sala",
   "Láminas",
@@ -26,10 +27,12 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const state = url.searchParams.get("state") ?? "confirmed";
   const track = url.searchParams.get("track");
+  const type = url.searchParams.get("type");
 
-  const { speakers, submissions, tracks } = await getDashboardData();
+  const { speakers, submissions, tracks, submissionTypes } = await getDashboardData();
   const submissionByCode = new Map(submissions.map((s) => [s.code, s]));
   const trackById = new Map(tracks.map((t) => [t.id, t]));
+  const typeById = new Map(submissionTypes.map((t) => [t.id, t]));
 
   const withTalks = speakers.map((sp) => ({
     speaker: sp,
@@ -41,7 +44,8 @@ export async function GET(request: Request) {
   const filtered = withTalks.filter(({ talks }) => {
     const stateMatch = state === "all" || talks.some((t) => t.state === state);
     const trackMatch = !track || talks.some((t) => String(t.trackId) === track);
-    return stateMatch && trackMatch;
+    const typeMatch = !type || talks.some((t) => String(t.submissionTypeId) === type);
+    return stateMatch && trackMatch && typeMatch;
   });
 
   const rows = filtered
@@ -67,6 +71,7 @@ export async function GET(request: Request) {
         .join(" | ");
       const rooms = talks.map((t) => t.slot?.roomName ?? "").join(" | ");
       const slides = talks.map((t) => (t.slidesUrl ? "Sí" : "No")).join(" | ");
+      const typeNames = talks.map((t) => typeById.get(t.submissionTypeId)?.name ?? "").join(" | ");
 
       return [
         sp.name,
@@ -82,6 +87,7 @@ export async function GET(request: Request) {
         titles,
         states,
         trackNames,
+        typeNames,
         schedules,
         rooms,
         slides,
