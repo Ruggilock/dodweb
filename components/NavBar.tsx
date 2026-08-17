@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/agenda", label: "Agenda" },
   { href: "/perfiles", label: "Perfiles" },
   { href: "/pendientes", label: "Pendientes" },
+  { href: "/paneles", label: "Paneles" },
 ];
 
 export function NavBar() {
