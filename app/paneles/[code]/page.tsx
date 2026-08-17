@@ -30,7 +30,7 @@ export default async function PanelBackingPage({ params }: { params: Params }) {
   // Cap avatar size so 2 panelists don't look as sparse as 5 fill the row.
   const avatarSize = panelists.length <= 3 ? "w-64 h-64" : panelists.length === 4 ? "w-56 h-56" : "w-48 h-48";
 
-  const schedule = talk.slot?.start
+  const rawSchedule = talk.slot?.start
     ? new Date(talk.slot.start).toLocaleString("es-PE", {
         weekday: "long",
         day: "2-digit",
@@ -40,6 +40,10 @@ export default async function PanelBackingPage({ params }: { params: Params }) {
         timeZone: "America/Lima",
       })
     : null;
+  // toLocaleString's es-PE weekday comes lowercase ("jueves") — capitalize just
+  // the first letter, not every word (Tailwind's `capitalize` also mangles
+  // "p. m." into "P. M.").
+  const schedule = rawSchedule ? rawSchedule.charAt(0).toUpperCase() + rawSchedule.slice(1) : null;
 
   return (
     <div className="relative flex h-screen w-screen flex-col justify-between overflow-hidden bg-purple-ink px-20 py-14">
@@ -107,7 +111,7 @@ export default async function PanelBackingPage({ params }: { params: Params }) {
       </div>
 
       <div className="relative flex items-center justify-center gap-4 font-mono text-xl text-purple-tint">
-        {schedule && <span className="capitalize">{schedule}</span>}
+        {schedule && <span>{schedule}</span>}
         {schedule && talk.slot?.roomName && <span>·</span>}
         {talk.slot?.roomName && <span>{talk.slot.roomName}</span>}
       </div>
