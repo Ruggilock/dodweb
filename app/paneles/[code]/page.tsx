@@ -6,6 +6,15 @@ export const dynamic = "force-dynamic";
 
 type Params = Promise<{ code: string }>;
 
+/** Short single-line teaser from the (often multi-paragraph) abstract —
+ * a stage backdrop needs to be read in a few seconds, not the full CFP text. */
+function teaser(abstract: string, maxLength = 220): string {
+  const firstParagraph = abstract.split("\n").find((p) => p.trim().length > 0) ?? "";
+  if (firstParagraph.length <= maxLength) return firstParagraph;
+  const cut = firstParagraph.slice(0, maxLength);
+  return cut.slice(0, cut.lastIndexOf(" ")) + "…";
+}
+
 export default async function PanelBackingPage({ params }: { params: Params }) {
   const { code } = await params;
   const { submissions, speakers, tracks } = await getDashboardData();
@@ -19,10 +28,21 @@ export default async function PanelBackingPage({ params }: { params: Params }) {
     .filter((s) => s !== undefined);
 
   // Cap avatar size so 2 panelists don't look as sparse as 5 fill the row.
-  const avatarSize = panelists.length <= 3 ? "w-56 h-56" : panelists.length === 4 ? "w-48 h-48" : "w-40 h-40";
+  const avatarSize = panelists.length <= 3 ? "w-64 h-64" : panelists.length === 4 ? "w-56 h-56" : "w-48 h-48";
+
+  const schedule = talk.slot?.start
+    ? new Date(talk.slot.start).toLocaleString("es-PE", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "America/Lima",
+      })
+    : null;
 
   return (
-    <div className="relative flex h-screen w-screen flex-col overflow-hidden bg-purple-ink px-20 py-16">
+    <div className="relative flex h-screen w-screen flex-col justify-between overflow-hidden bg-purple-ink px-20 py-14">
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -31,24 +51,30 @@ export default async function PanelBackingPage({ params }: { params: Params }) {
         }}
       />
 
-      <div className="relative flex items-center justify-center gap-3">
-        <span className="font-mono text-xl font-medium tracking-[0.2em] text-purple-tint">
-          DEVOPSDAYS LIMA 2026
-        </span>
-        {track && (
-          <span className="rounded-full bg-lime-soft px-4 py-1 font-mono text-lg font-medium text-purple-deep">
-            {track.name}
+      <div className="relative text-center">
+        <div className="flex items-center justify-center gap-3">
+          <span className="font-mono text-xl font-medium tracking-[0.2em] text-purple-tint">
+            DEVOPSDAYS LIMA 2026
           </span>
+          {track && (
+            <span className="rounded-full bg-lime-soft px-4 py-1 font-mono text-lg font-medium text-purple-deep">
+              {track.name}
+            </span>
+          )}
+        </div>
+
+        <h1 className="mx-auto mt-8 max-w-6xl font-display text-6xl font-extrabold leading-tight text-paper">
+          {talk.title}
+        </h1>
+
+        {talk.abstract && (
+          <p className="mx-auto mt-6 max-w-4xl text-2xl leading-relaxed text-purple-tint">
+            {teaser(talk.abstract)}
+          </p>
         )}
       </div>
 
-      <div className="relative mt-10 text-center">
-        <h1 className="mx-auto max-w-6xl font-display text-6xl font-extrabold leading-tight text-paper">
-          {talk.title}
-        </h1>
-      </div>
-
-      <div className="relative flex flex-1 items-center justify-center gap-16">
+      <div className="relative flex items-center justify-center gap-16">
         {panelists.map((sp) => (
           <div key={sp.code} className="flex flex-col items-center gap-5 text-center">
             {sp.avatarUrl ? (
@@ -78,6 +104,12 @@ export default async function PanelBackingPage({ params }: { params: Params }) {
         {panelists.length === 0 && (
           <p className="text-2xl text-purple-tint">Sin panelistas asignados.</p>
         )}
+      </div>
+
+      <div className="relative flex items-center justify-center gap-4 font-mono text-xl text-purple-tint">
+        {schedule && <span className="capitalize">{schedule}</span>}
+        {schedule && talk.slot?.roomName && <span>·</span>}
+        {talk.slot?.roomName && <span>{talk.slot.roomName}</span>}
       </div>
     </div>
   );
