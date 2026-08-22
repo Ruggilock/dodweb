@@ -3,24 +3,33 @@ import type { ReactNode } from "react";
 import { getDashboardData } from "@/lib/pretalx";
 import { CompletionBar } from "@/components/CompletionBar";
 import { StateBadge } from "@/components/StateBadge";
+import { Badge } from "@/components/Badge";
+import { FilterSelect } from "@/components/FilterSelect";
 
 // See app/(dashboard)/page.tsx for why this is force-dynamic instead of revalidate.
 export const dynamic = "force-dynamic";
 
+type SearchParams = Promise<{ slidesType?: string }>;
+
 function PendingList({
   title,
   count,
+  filter,
   children,
 }: {
   title: string;
   count: number;
+  filter?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <div className="rounded-lg border border-line bg-white p-5">
-      <h2 className="mb-3 font-display text-sm font-bold uppercase tracking-wide text-ink">
-        {title} ({count})
-      </h2>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-display text-sm font-bold uppercase tracking-wide text-ink">
+          {title} ({count})
+        </h2>
+        {filter}
+      </div>
       {count === 0 ? (
         <p className="text-sm text-mute">Todo completo 🎉</p>
       ) : (
@@ -30,7 +39,8 @@ function PendingList({
   );
 }
 
-export default async function PendientesPage() {
+export default async function PendientesPage({ searchParams }: { searchParams: SearchParams }) {
+  const { slidesType } = await searchParams;
   const { speakers, submissions, submissionTypes } = await getDashboardData();
   const typeById = new Map(submissionTypes.map((t) => [t.id, t]));
   const speakerByCode = new Map(speakers.map((s) => [s.code, s]));
@@ -44,9 +54,16 @@ export default async function PendientesPage() {
     .filter((sp) => confirmedSpeakerCodes.has(sp.code))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const missingSlides = [...confirmedTalks]
+  const allMissingSlides = [...confirmedTalks]
     .filter((s) => !s.slidesUrl)
     .sort((a, b) => a.title.localeCompare(b.title));
+  const missingSlidesTypes = [...new Set(allMissingSlides.map((s) => s.submissionTypeId))]
+    .map((id) => typeById.get(id))
+    .filter((t): t is NonNullable<typeof t> => t !== undefined)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const missingSlides = allMissingSlides.filter(
+    (s) => !slidesType || String(s.submissionTypeId) === slidesType
+  );
   const missingTshirt = confirmedSpeakers.filter((sp) => !sp.tshirtSize);
   const missingDni = confirmedSpeakers.filter((sp) => !sp.identityDocument);
 
@@ -67,7 +84,7 @@ export default async function PendientesPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <CompletionBar
           label="Láminas subidas"
-          filled={confirmedTalks.length - missingSlides.length}
+          filled={confirmedTalks.length - allMissingSlides.length}
           total={confirmedTalks.length}
         />
         <CompletionBar
@@ -83,10 +100,29 @@ export default async function PendientesPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <PendingList title="Faltan láminas" count={missingSlides.length}>
+        <PendingList
+          title="Faltan láminas"
+          count={missingSlides.length}
+          filter={
+            missingSlidesTypes.length > 1 ? (
+              <FilterSelect
+                label="Tipo"
+                paramName="slidesType"
+                value={slidesType ?? ""}
+                options={[
+                  { value: "", label: "Todos" },
+                  ...missingSlidesTypes.map((t) => ({ value: String(t.id), label: t.name })),
+                ]}
+              />
+            ) : null
+          }
+        >
           {missingSlides.map((s) => (
             <li key={s.code} className="border-b border-line py-2 last:border-0">
-              <p className="text-sm font-medium text-ink">{s.title}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-ink">{s.title}</p>
+                <Badge tone="mute">{typeById.get(s.submissionTypeId)?.name ?? "—"}</Badge>
+              </div>
               <p className="text-xs text-mute">
                 {s.speakerCodes
                   .map((c) => speakerByCode.get(c))
